@@ -15,7 +15,6 @@ async def handle_dialog(request: Request):
   is_new_session = data.get("session", {}).get("new", False)
   user_command = data.get("request", {}).get("command", "").strip()
 
-  # Приветствие при старте навыка
   if is_new_session or not user_command:
     return {
         "response": {
@@ -47,14 +46,18 @@ async def handle_dialog(request: Request):
       "max_tokens": 350,
   }
 
- try:
-  async with httpx.AsyncClient(timeout=15.0) as client:
-    response = await client.post(GROQ_URL, headers=headers, json=payload)
-    print(f'Groq Status Code: {response.status_code}')
-    print(f'Groq Response Body: {response.text}')
-    res_json = response.json()
-    reply_text = res_json['choices'][0]['message']['content']
-except Exception as e:
-  print(f'General Error: {repr(e)}')
-  reply_text = 'Не удалось связаться с сервером. Попробуйте еще раз.'
+  try:
+    async with httpx.AsyncClient(timeout=15.0) as client:
+      response = await client.post(GROQ_URL, headers=headers, json=payload)
+      print(f"Groq Status Code: {response.status_code}")
+      print(f"Groq Response Body: {response.text}")
+      res_json = response.json()
+      reply_text = res_json["choices"][0]["message"]["content"]
+  except Exception as e:
+    print(f"General Error: {repr(e)}")
+    reply_text = "Не удалось связаться с сервером. Попробуйте еще раз."
+
+  return {
+      "response": {"text": reply_text, "end_session": False},
+      "version": "1.0",
   }
