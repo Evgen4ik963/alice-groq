@@ -24,7 +24,6 @@ async def handle_dialog(request: Request):
         "version": "1.0",
     }
 
-  # Проверка наличия ключа
   if not GROQ_API_KEY:
     print("КРИТИЧЕСКАЯ ОШИБКА: Переменная GROQ_API_KEY не задана на Render!")
     return {
@@ -40,14 +39,15 @@ async def handle_dialog(request: Request):
       "Content-Type": "application/json",
   }
   payload = {
-      "model": "llama-3.1-8b-instant",
+      "model": "openai/gpt-oss-20b",
       "messages": [
           {
               "role": "system",
               "content": (
                   "Ты голосовой ассистент Алиса. Отвечай кратко, емко и по"
-                  " сути на русском языке. Не используй спецсимволы разметки (*,"
-                  " #, `), так как ответ зачитывается вслух."
+                  " сути на русском языке. Категорически не используй"
+                  " спецсимволы разметки (*, #, `), так как весь твой ответ"
+                  " зачитывается голосом через колонку."
               ),
           },
           {"role": "user", "content": user_command},
