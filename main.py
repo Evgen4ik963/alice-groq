@@ -4,7 +4,7 @@ import httpx
 
 app = FastAPI()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
@@ -15,11 +15,21 @@ async def handle_dialog(request: Request):
   is_new_session = data.get("session", {}).get("new", False)
   user_command = data.get("request", {}).get("command", "").strip()
 
-  # Приветствие при старте диалога или пустом вводе
   if is_new_session or not user_command:
     return {
         "response": {
             "text": "Привет! Я подключена к быстрой нейросети. О чем спросите?",
+            "end_session": False,
+        },
+        "version": "1.0",
+    }
+
+  # Проверка наличия ключа
+  if not GROQ_API_KEY:
+    print("КРИТИЧЕСКАЯ ОШИБКА: Переменная GROQ_API_KEY не задана на Render!")
+    return {
+        "response": {
+            "text": "Ошибка: в настройках сервера не указан ключ API.",
             "end_session": False,
         },
         "version": "1.0",
@@ -35,25 +45,26 @@ async def handle_dialog(request: Request):
           {
               "role": "system",
               "content": (
-                  "Ты голосовой ассистент Алиса. Отвечай коротко, емко и по"
-                  " сути на русском языке. Категорически не используй"
-                  " спецсимволы разметки (звездочки *, решетки #, обратные"
-                  " кавычки `), так как весь твой ответ будет зачитываться"
-                  " голосом через колонку."
+                  "Ты голосовой ассистент Алиса. Отвечай кратко, емко и по"
+                  " сути на русском языке. Не используй спецсимволы разметки (*,"
+                  " #, `), так как ответ зачитывается вслух."
               ),
           },
           {"role": "user", "content": user_command},
       ],
-      "max_tokens": 350,
+      "max_tokens": 300,
   }
 
   try:
     async with httpx.AsyncClient(timeout=15.0) as client:
       response = await client.post(GROQ_URL, headers=headers, json=payload)
+      print(f"Код ответа Groq: {response.status_code}")
+      print(f"Тело ответа Groq: {response.text}")
+
       res_json = response.json()
       reply_text = res_json["choices"][0]["message"]["content"]
   except Exception as e:
-    print(f"Error: {repr(e)}")
+    print(f"Исключение при обработке: {repr(e)}")
     reply_text = "Не удалось связаться с сервером. Попробуйте еще раз."
 
   return {
